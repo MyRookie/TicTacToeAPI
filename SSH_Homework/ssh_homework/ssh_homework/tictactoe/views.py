@@ -35,8 +35,13 @@ def games(request, *args, **kwargs):
 
         if request.method == 'PUT':
             # post data error
-            board = request.data['game']['board']
-            gameStatus = request.data['game']['status']
+            try:
+                board = request.data['game']['board']
+                gameStatus = request.data['game']['status']
+            except:
+                return Response({
+                    'message':'Bad request'
+                }, status=status.HTTP_400_BAD_REQUEST)
             respond, game = player_move(board, gameStatus, token)
             if respond == RESPOND_STATUS['ok']:
                 data = game.get_game()

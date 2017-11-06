@@ -24,6 +24,7 @@ class GameManager(models.Manager):
             return RESPOND_STATUS['ok'], game
         if len(board.replace('-', '')) == 1:
             game = self.create(token=self.generate_token(), board=board, status='RUNNING',first='P',player=board.replace('-', ''))
+            game.move(list(board))
             return RESPOND_STATUS['ok'], game
         return RESPOND_STATUS['bad_request'], None
 
@@ -63,12 +64,12 @@ class GameManager(models.Manager):
     def validate_move(self, token, board, status):
         '''Validate the player's move, if True return game object'''
         try:
-            if len(board) != 9:
+            if len(board) != 9 :
                 return RESPOND_STATUS['bad_request'], None
             obj = GamesModel.objects.filter(token=token)
             if obj.count() == 0:
                 return RESPOND_STATUS['game_not_found'], None
-            elif status != obj[0].status:
+            elif status != obj[0].status or obj[0].status != 'RUNNING':
                 return RESPOND_STATUS['bad_request'], None
             else:
                 if obj[0].board == board:
@@ -136,7 +137,7 @@ class GamesModel(models.Model):
                 board[move] = player
                 val = self.board_valuation(board, next_player, player, alpha, beta)
                 board[move] = Open_token
-                if player == next_player:  # Maximizing player
+                if player == Computer:  # Maximizing player
                     if val > alpha:
                         alpha = val
                     if alpha >= beta:
@@ -156,30 +157,33 @@ class GamesModel(models.Model):
         ''' Determine Os next move. Check that a legal move remains before calling.
             Randomly picks a single move from any group of moves with the same value.
         '''
+        print(board)
         best_val = -2  # 1 less than min of O_token, X_token
         my_moves = []
         for move in self.SLOTS:
             if board[move] == Open_token:
                 board[move] = Computer
                 val = self.board_valuation(board, Player, Computer, -2, 2)
-                print(val)
                 board[move] = Open_token
                 if val > best_val:
                     best_val = val
                     my_moves = [move]
                 if val == best_val:
                     my_moves.append(move)
+        print(my_moves)
         return random.choice(my_moves)
 
     def winner(self, board):
         ''' Return the winner of the game, if returned '-' means no winner yet
         '''
         for triad in self.WINNING_TRIADS:
-            if board[triad[0]] == board[triad[1]] and board[triad[1]] == board[triad[2]]:
-                return board[triad[0]]
+            triad_sum = board[triad[0]] + board[triad[1]] + board[triad[2]]
+            if triad_sum == 3 or triad_sum == -3:
+                return board[triad[0]]  # Take advantage of "_token" values
         return 0
 
     def legal_move_left(self, board):
+        print(board)
         ''' Returns True if a legal move remains, False if not. '''
         for slot in self.SLOTS:
             if board[slot] == 0:
@@ -194,8 +198,7 @@ class GamesModel(models.Model):
         }
         return data
         
-
-    def move(self, board):
+    def reformatBoard(self, board):
         for i in range(0,9):
             if board[i] == '-':
                 board[i] = 0
@@ -205,49 +208,38 @@ class GamesModel(models.Model):
                 continue
             else:
                 board[i] = 1
-                continue        
+                continue
+        return board
 
-        result = self.winner(board)
-        if result == 1:
-            if self.status == 'O':
-                self.status = 'X_WON'
-            if self.status == 'X':
-                self.status = 'O_WON'
-            return RESPOND_STATUS['ok'] ,self
-
-        if result == -1:
-            if self.status == 'O':
-                self.status = 'O_WON'
-            if self.status == 'X':
-                self.status = 'X_WON'
-            return RESPOND_STATUS['ok'] ,self
-            
-        if result == 0:
+    def move(self, board):
+        board = self.reformatBoard(board)
+        if self.legal_move_left(board) and self.winner(board) == Open_token:
             if self.legal_move_left(board):
                 mymv = self.determine_move(board)
+                board[mymv] = Computer
                 newBoard = list(self.board)
                 newBoard[mymv] = 'XO'.replace(self.player, '')
                 self.update_board("".join(newBoard))
-                '''Recheck the board'''
-                result = self.winner(board)
-                if result == 0 and not self.legal_move_left(board):
-                    self.static = 'DRAW'
-                    self.save()
-                if result == 1:
-                    if self.status == 'O':
-                        self.status = 'X_WON'
-                    if self.status == 'X':
-                        self.status = 'O_WON'
-
-                if result == -1:
-                    if self.status == 'O':
-                        self.status = 'O_WON'
-                    if self.status == 'X':
-                        self.status = 'X_WON'
+        print(list(self.board))
+        print(self.winner(self.reformatBoard(list(self.board))))
+        if self.winner(self.reformatBoard(list(self.board))) == 1:
+            if self.player == 'X':
+                self.status = 'O_WON'
+                self.save()
             else:
-                self.static = 'DRAW'
-                self.save()                
-        
+                self.status = 'X_WON'
+                self.save()
+        if self.winner(self.reformatBoard(list(self.board))) == -1:
+            if self.player == 'X':
+                self.status = 'X_WON'
+                self.save()
+            else:
+                self.status = 'O_WON'
+                self.save()
+        else:
+            if not self.legal_move_left(board):
+                self.status = 'DRAW'
+                self.save()
 
         return RESPOND_STATUS['ok'] ,self
 
