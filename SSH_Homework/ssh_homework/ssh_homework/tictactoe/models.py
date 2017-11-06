@@ -209,11 +209,17 @@ class GamesModel(models.Model):
 
         result = self.winner(board)
         if result == 1:
-            
+            if self.status == 'O':
+                self.status = 'X_WON'
+            if self.status == 'X':
+                self.status = 'O_WON'
             return RESPOND_STATUS['ok'] ,self
-            
+
         if result == -1:
-            print('You won')
+            if self.status == 'O':
+                self.status = 'O_WON'
+            if self.status == 'X':
+                self.status = 'X_WON'
             return RESPOND_STATUS['ok'] ,self
             
         if result == 0:
@@ -228,11 +234,19 @@ class GamesModel(models.Model):
                     self.static = 'DRAW'
                     self.save()
                 if result == 1:
-                    print('Computer won')
-                    pass
+                    if self.status == 'O':
+                        self.status = 'X_WON'
+                    if self.status == 'X':
+                        self.status = 'O_WON'
+
                 if result == -1:
-                    print('You won')
-                    pass    
+                    if self.status == 'O':
+                        self.status = 'O_WON'
+                    if self.status == 'X':
+                        self.status = 'X_WON'
+            else:
+                self.static = 'DRAW'
+                self.save()                
         
 
         return RESPOND_STATUS['ok'] ,self
