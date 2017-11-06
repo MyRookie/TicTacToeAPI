@@ -9,7 +9,7 @@ def player_move(board, status, token):
     respond, game = GamesModel.objects.validate_move(token, board, status)
     if respond != RESPOND_STATUS['ok']:
         return respond, None
-    game.move( board)
+    respond, game = game.move( list(board))
     return respond, game
 
 @api_view(['PUT', 'GET', 'DELETE'])
@@ -113,3 +113,8 @@ def game(request, *args, **kwargs):
 
 
 # "game": {"token": "ce92f644","status": "RUNNING","board": "---------"}
+# {  
+#    "game":{  
+#       "board":"---------"
+#    }
+# }
