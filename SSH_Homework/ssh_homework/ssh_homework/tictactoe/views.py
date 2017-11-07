@@ -35,13 +35,10 @@ def games(request, *args, **kwargs):
 
         if request.method == 'PUT':
             # post data error
-            try:
-                board = request.data['game']['board']
-                gameStatus = request.data['game']['status']
-            except:
-                return Response({
-                    'message':'Bad request'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            if 'game' not in request.data or 'board' not in request.data['game'] or 'status' not in request.data['game']:
+                return Response({'message':'Bad request'}, status=status.HTTP_400_BAD_REQUEST)
+            board = request.data['game']['board']
+            gameStatus = request.data['game']['status']
             respond, game = player_move(board, gameStatus, token)
             if respond == RESPOND_STATUS['ok']:
                 data = game.get_game()
@@ -86,6 +83,8 @@ def games(request, *args, **kwargs):
 @permission_classes((permissions.AllowAny,))
 def game(request, *args, **kwargs):
     if request.method == 'POST':
+        if 'game' not in request.data or 'board' not in request.data['game']:
+            return Response({'message':'Bad request'}, status=status.HTTP_400_BAD_REQUEST)
         respond, game = GamesModel.objects.create_game(request.data['game']['board'])
         if respond == RESPOND_STATUS['ok']:
             data = game.get_game()
@@ -115,11 +114,3 @@ def game(request, *args, **kwargs):
             return Response({
                 'message': 'Internal server error'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)        
-
-
-# "game": {"token": "ce92f644","status": "RUNNING","board": "---------"}
-# {  
-#    "game":{  
-#       "board":"---------"
-#    }
-# }

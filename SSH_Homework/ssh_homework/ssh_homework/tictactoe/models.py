@@ -122,27 +122,23 @@ class GamesModel(models.Model):
 
     def board_valuation(self, board, player, next_player, alpha, beta):
         '''Dynamic and static evaluation of board position.'''
-        # Static evaluation - value for next_player
         wnnr = self.winner(board)
         if wnnr != Open_token:
-            # Not a draw or a move left: someone won
             return wnnr
         elif not self.legal_move_left(board):
-            # Draw - no moves left
-            return 0 # Cat
-        # If flow-of-control gets here, no winner yet, not a draw.
-        # Check all legal moves for "player"
+            return 0 
+
         for move in self.SLOTS:
             if board[move] == Open_token:
                 board[move] = player
                 val = self.board_valuation(board, next_player, player, alpha, beta)
                 board[move] = Open_token
-                if player == Computer:  # Maximizing player
+                if player == Computer:  # Maximizing computer
                     if val > alpha:
                         alpha = val
                     if alpha >= beta:
                         return beta
-                else:  # X_token player, minimizing
+                else:  # Minimizing player
                     if val < beta:
                         beta = val
                     if beta <= alpha:
@@ -158,7 +154,7 @@ class GamesModel(models.Model):
             Randomly picks a single move from any group of moves with the same value.
         '''
         print(board)
-        best_val = -2  # 1 less than min of O_token, X_token
+        best_val = -2 
         my_moves = []
         for move in self.SLOTS:
             if board[move] == Open_token:
@@ -174,7 +170,7 @@ class GamesModel(models.Model):
         return random.choice(my_moves)
 
     def winner(self, board):
-        ''' Return the winner of the game, if returned '-' means no winner yet
+        ''' Return the winner of the game, if returned 0 means no winner yet
         '''
         for triad in self.WINNING_TRIADS:
             triad_sum = board[triad[0]] + board[triad[1]] + board[triad[2]]
@@ -199,6 +195,7 @@ class GamesModel(models.Model):
         return data
         
     def reformatBoard(self, board):
+        '''reformat board to [-1,0,1] to exicute Min-Max algorithm'''
         for i in range(0,9):
             if board[i] == '-':
                 board[i] = 0
@@ -212,6 +209,7 @@ class GamesModel(models.Model):
         return board
 
     def move(self, board):
+        '''Check current game status here'''
         board = self.reformatBoard(board)
         if self.legal_move_left(board) and self.winner(board) == Open_token:
             if self.legal_move_left(board):
@@ -222,6 +220,7 @@ class GamesModel(models.Model):
                 self.update_board("".join(newBoard))
         print(list(self.board))
         print(self.winner(self.reformatBoard(list(self.board))))
+        '''If computer win'''
         if self.winner(self.reformatBoard(list(self.board))) == 1:
             if self.player == 'X':
                 self.status = 'O_WON'
@@ -229,6 +228,7 @@ class GamesModel(models.Model):
             else:
                 self.status = 'X_WON'
                 self.save()
+        '''If player win'''
         if self.winner(self.reformatBoard(list(self.board))) == -1:
             if self.player == 'X':
                 self.status = 'X_WON'
@@ -242,8 +242,4 @@ class GamesModel(models.Model):
                 self.save()
 
         return RESPOND_STATUS['ok'] ,self
-
-        # base on the existing board, judge win(update status)
-        # base on existing board, computer move
-        # base on existing board, judge win(update status)
         pass
