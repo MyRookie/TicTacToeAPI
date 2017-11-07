@@ -40,6 +40,7 @@ run command:
  GET request to get a list of games
  
  http://localhost:8000/api/v1/games/{game-id}
+ 
  PUT:
  {
     "game": {
